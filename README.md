@@ -11,6 +11,8 @@ https://github.com/kakunpc/vrc-screenshot-to-misskey/releases
 
 ## 設定を変更する
 
+config.jsonをテキスト開いて編集します。
+
 ```
 {
   "domain": "misskey.io",
