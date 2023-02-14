@@ -20,9 +20,9 @@ https://github.com/kakunpc/vrc-screenshot-to-misskey/releases
 }
 ```
 
-domain: アップロード先がmisskey.io以外の場合は変更してください。
-upload_path: アップロード先のフォルダを指定できます。
-srcDir: VRChatの写真の保存先を指定してください。
+- domain: アップロード先がmisskey.io以外の場合は変更してください。
+- upload_path: アップロード先のフォルダを指定できます。
+- srcDir: VRChatの写真の保存先を指定してください。（空の場合は自動で設定されます）
 
 ## 起動
 
