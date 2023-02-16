@@ -130,7 +130,7 @@ public sealed class MisskeyFileUploadServices
             var response = await httpClient.PostAsync(url, body);
             var m = response.EnsureSuccessStatusCode();
             Debug.WriteLine(m.ToString());
-            await _lastUploadDataRepository.StoreAsync(new LastUploadData(now, filePath));
+            await _lastUploadDataRepository.StoreAsync(new LastUploadData(fi.CreationTime, filePath));
         }
         catch (Exception e)
         {
