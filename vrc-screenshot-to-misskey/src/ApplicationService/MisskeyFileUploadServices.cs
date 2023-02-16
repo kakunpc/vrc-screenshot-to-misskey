@@ -11,12 +11,14 @@ public sealed class MisskeyFileUploadServices
     private readonly ILastUploadDataRepository _lastUploadDataRepository;
     private readonly IApplicationConfigRepository _applicationConfigRepository;
     readonly Regex _regex = new Regex(@".*(\d\d\d\d)-(\d\d)-(\d\d)_(\d\d)-(\d\d)-(\d\d)");
+    private readonly ILogger _logger;
 
     public MisskeyFileUploadServices(ILastUploadDataRepository lastUploadDataRepository,
-        IApplicationConfigRepository applicationConfigRepository)
+        IApplicationConfigRepository applicationConfigRepository, ILogger logger)
     {
         _lastUploadDataRepository = lastUploadDataRepository;
         _applicationConfigRepository = applicationConfigRepository;
+        _logger = logger;
     }
 
     public async Task UploadScreenShot(Misskey misskey, string filePath, string fileName, DateTime originalDateTime)
@@ -25,7 +27,7 @@ public sealed class MisskeyFileUploadServices
         {
             var applicationConfig = await _applicationConfigRepository.FindAsync();
 
-           // 生成された時刻を採用する
+            // 生成された時刻を採用する
             var now = originalDateTime;
 
             // ファイル名に日付があったらそれを採用する　例）VRChat_2023-02-15_02-28-41.435_7680x4320
@@ -35,6 +37,7 @@ public sealed class MisskeyFileUploadServices
                 now = DateTime.Parse(
                     $"{matches.Groups[1]}/{matches.Groups[2]}/{matches.Groups[3]} {matches.Groups[4]}:{matches.Groups[5]}:{matches.Groups[6]}");
             }
+
             // 
             now = now.AddHours(-applicationConfig.TimeToPreviousDay);
 
@@ -70,8 +73,8 @@ public sealed class MisskeyFileUploadServices
                     // 存在しないなら作成
                     var res = await misskey.ApiAsync<DriveFolder>("drive/folders/create",
                         string.IsNullOrEmpty(pathRoot)
-                            ? new { name = path }
-                            : new { name = path, parentId = pathRoot });
+                            ? new {name = path}
+                            : new {name = path, parentId = pathRoot});
                     // IDを登録
                     pathRoot = res.Id;
                 }
@@ -126,12 +129,12 @@ public sealed class MisskeyFileUploadServices
             using var httpClient = new HttpClient();
             var response = await httpClient.PostAsync(url, body);
             var m = response.EnsureSuccessStatusCode();
-            Debug.WriteLine(m.ToString());
+            _logger.Info(m.ToString());
             await _lastUploadDataRepository.StoreAsync(new LastUploadData(originalDateTime, filePath));
         }
         catch (Exception e)
         {
-            // TODO: ログ
+            _logger.Error(e);
         }
     }
 }

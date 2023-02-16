@@ -10,22 +10,25 @@ public sealed class MisskeyAutoUploadService
     private readonly MisskeyFileUploadServices _fileUploadServices;
     private readonly ILastUploadDataRepository _lastUploadDataRepository;
     private readonly AvifImageConvertService _avifImageConvertService;
+    private readonly ILogger _logger;
 
     private bool _stopRequest = false;
     private bool _isExitOk = true;
 
     public MisskeyAutoUploadService(IApplicationConfigRepository applicationConfigRepository,
         MisskeyFileUploadServices fileUploadServices, ILastUploadDataRepository lastUploadDataRepository,
-        AvifImageConvertService avifImageConvertService)
+        AvifImageConvertService avifImageConvertService, ILogger logger)
     {
         _applicationConfigRepository = applicationConfigRepository;
         _fileUploadServices = fileUploadServices;
         _lastUploadDataRepository = lastUploadDataRepository;
         _avifImageConvertService = avifImageConvertService;
+        _logger = logger;
     }
 
     public async Task RunAsync()
     {
+        _logger.Info("Start");
         // ファイルを読み込む
         var applicationConfig = await _applicationConfigRepository.FindAsync();
         // マイグレーションのために一度書き込み
@@ -49,16 +52,24 @@ public sealed class MisskeyAutoUploadService
                     .OrderBy(fi => fi.CreationTime)
                     .ToList();
 
+                _logger.Info($"FindFiles:{files.Count}");
+
+                int i = 0;
                 foreach (var fileInfo in files)
                 {
+                    _logger.Info($"[{i}] AvifImageConvertService:{fileInfo.FullName}");
                     var outPath = await _avifImageConvertService.Run(fileInfo.FullName);
+                    
+                    _logger.Info($"[{i}] UploadScreenShot:{outPath}");
                     await _fileUploadServices.UploadScreenShot(misskey, outPath,
                         Path.GetFileNameWithoutExtension(fileInfo.Name),
                         fileInfo.CreationTime);
                     // アップロードしてから1秒はまつ
+                    _logger.Info($"[{i}] Wait");
                     await Task.Delay(TimeSpan.FromMilliseconds(1000));
                     // 終了を宣言されてたら処理を終わらせる
                     if (_stopRequest) break;
+                    ++i;
                 }
 
                 await Task.Delay(TimeSpan.FromMilliseconds(1000));
@@ -66,8 +77,7 @@ public sealed class MisskeyAutoUploadService
         }
         catch (Exception e)
         {
-            Debug.WriteLine(e.Message);
-            // TODO: ログ
+            _logger.Error(e);
             // 強制終了
             Application.Exit();
         }
@@ -82,6 +92,7 @@ public sealed class MisskeyAutoUploadService
     public async Task Stop(Action exitAction)
     {
         if (_stopRequest) return;
+        _logger.Info("Call Stop");
 
         // 処理停止のリクエスト
         _stopRequest = true;
@@ -99,6 +110,7 @@ public sealed class MisskeyAutoUploadService
         _avifImageConvertService.Dispose();
 
         Debug.WriteLine("END");
+        _logger.Info("END");
         exitAction();
     }
 
