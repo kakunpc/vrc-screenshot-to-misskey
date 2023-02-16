@@ -36,5 +36,6 @@ internal static class Program
 
         services.AddSingleton<MisskeyFileUploadServices>();
         services.AddSingleton<MisskeyAutoUploadService>();
+        services.AddSingleton<AvifImageConvertService>();
     }
 }

@@ -1,0 +1,8 @@
+﻿{
+  "domain": "misskey.io",
+  "token": "",
+  "upload_path": "VRChat/{YYYY}-{MM}-{DD}",
+  "src_dir": "",
+  "use_avif_convert": false,
+  "time_to_previous_day": 5
+}

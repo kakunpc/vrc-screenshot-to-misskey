@@ -15,7 +15,14 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
         // 存在しない場合はサンプルを作成
         if (!File.Exists(_dataPath))
         {
-            StoreAsync(new ApplicationConfig("misskey.io", "", "VRChat/{YYYY}-{MM}-{DD}", GetVRChatPictureDir())).Wait();
+            StoreAsync(new ApplicationConfig(
+                "misskey.io",
+                "",
+                "VRChat/{YYYY}-{MM}-{DD}",
+                GetVRChatPictureDir(),
+                false,
+                5
+            )).Wait();
         }
     }
 
@@ -33,9 +40,17 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
 
         if (string.IsNullOrEmpty(dto.Domain)) dto.Domain = "misskey.io";
         if (string.IsNullOrEmpty(dto.UploadPath)) dto.UploadPath = "VRChat/{YYYY}-{MM}-{DD}";
-        if (string.IsNullOrEmpty(dto.SrcDir)) dto.SrcDir = GetVRChatPictureDir();
+        if (string.IsNullOrEmpty(dto.SrcDir))
+        {
+            dto.SrcDir = string.IsNullOrEmpty(dto.OldSrcDir) ? GetVRChatPictureDir() : dto.OldSrcDir;
+        }
 
-        return new ApplicationConfig(dto.Domain, dto.Token, dto.UploadPath, dto.SrcDir);
+        return new ApplicationConfig(dto.Domain,
+            dto.Token,
+            dto.UploadPath,
+            dto.SrcDir,
+            dto.UseAvifConvert ?? false,
+            dto.TimeToPreviousDay ?? 5);
     }
 
     public async Task StoreAsync(ApplicationConfig applicationConfig)
@@ -46,8 +61,11 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
             Token = applicationConfig.Token,
             UploadPath = applicationConfig.UploadPath,
             SrcDir = applicationConfig.SrcDir,
+            UseAvifConvert = applicationConfig.UseAvifConvert,
+            TimeToPreviousDay = applicationConfig.TimeToPreviousDay,
         };
-        var json = JsonConvert.SerializeObject(dto, Formatting.Indented);
+        var json = JsonConvert.SerializeObject(dto, Formatting.Indented,
+            new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore });
         await File.WriteAllTextAsync(_dataPath, json, Encoding.UTF8);
     }
 }
@@ -63,6 +81,16 @@ class ApplicationConfigDto
     [JsonProperty("upload_path")]
     public string UploadPath;
 
-    [JsonProperty("srcDir")]
+    [JsonProperty("src_dir")]
     public string SrcDir;
+
+    [JsonProperty("use_avif_convert")]
+    public bool? UseAvifConvert;
+
+    [JsonProperty("time_to_previous_day")]
+    public int? TimeToPreviousDay;
+
+    // 以下使用しない nullにすることでエクスポートから消す
+    [JsonProperty("srcDir")]
+    public string? OldSrcDir;
 }

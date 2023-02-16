@@ -9,15 +9,19 @@ public sealed class MisskeyAutoUploadService
     private readonly IApplicationConfigRepository _applicationConfigRepository;
     private readonly MisskeyFileUploadServices _fileUploadServices;
     private readonly ILastUploadDataRepository _lastUploadDataRepository;
+    private readonly AvifImageConvertService _avifImageConvertService;
 
     private bool _stopRequest = false;
     private bool _isExitOk = true;
 
-    public MisskeyAutoUploadService(IApplicationConfigRepository applicationConfigRepository, MisskeyFileUploadServices fileUploadServices, ILastUploadDataRepository lastUploadDataRepository)
+    public MisskeyAutoUploadService(IApplicationConfigRepository applicationConfigRepository,
+        MisskeyFileUploadServices fileUploadServices, ILastUploadDataRepository lastUploadDataRepository,
+        AvifImageConvertService avifImageConvertService)
     {
         _applicationConfigRepository = applicationConfigRepository;
         _fileUploadServices = fileUploadServices;
         _lastUploadDataRepository = lastUploadDataRepository;
+        _avifImageConvertService = avifImageConvertService;
     }
 
     public async Task RunAsync()
@@ -40,20 +44,23 @@ public sealed class MisskeyAutoUploadService
 
                 DirectoryInfo di = new DirectoryInfo(vrcPath);
                 var files = di.GetFiles("*.*", SearchOption.AllDirectories)
-                    .Where(x => x.Extension == ".png" || x.Extension == ".jpg" || x.Extension == ".jpeg")
+                    .Where(x => x.Extension.ToLower() is ".png" or ".jpg" or ".jpeg" or ".heic" or ".avif")
                     .Where(x => x.CreationTime.Ticks > lastUploadDate.LastUploadTime.Ticks)
                     .OrderBy(fi => fi.CreationTime)
                     .ToList();
 
                 foreach (var fileInfo in files)
                 {
-                    await _fileUploadServices.UploadScreenShot(misskey, fileInfo.FullName);
-                    await Task.Delay(TimeSpan.FromMilliseconds(100));
+                    var outPath = await _avifImageConvertService.Run(fileInfo.FullName);
+                    await _fileUploadServices.UploadScreenShot(misskey, outPath,
+                        Path.GetFileNameWithoutExtension(fileInfo.Name));
+                    // アップロードしてから1秒はまつ
+                    await Task.Delay(TimeSpan.FromMilliseconds(1000));
                     // 終了を宣言されてたら処理を終わらせる
                     if (_stopRequest) break;
                 }
-                Debug.WriteLine("UploadTest");
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
+
+                await Task.Delay(TimeSpan.FromMilliseconds(1000));
             }
         }
         catch (Exception e)
@@ -86,6 +93,9 @@ public sealed class MisskeyAutoUploadService
                 await Task.CompletedTask;
             }
         });
+
+        // 各処理のDispose
+        _avifImageConvertService.Dispose();
 
         Debug.WriteLine("END");
         exitAction();
@@ -126,7 +136,7 @@ public sealed class MisskeyAutoUploadService
         {
             var token = await MiOauthService.RunAsync(applicationConfig.Domain);
             // tokenを保存
-            await _applicationConfigRepository.StoreAsync(new ApplicationConfig(applicationConfig.Domain, token, applicationConfig.UploadPath, applicationConfig.UploadPath));
+            await _applicationConfigRepository.StoreAsync(new ApplicationConfig(applicationConfig, token: token));
 
             return new Misskey(applicationConfig.Domain, token);
         }

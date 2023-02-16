@@ -18,13 +18,18 @@ config.jsonをテキスト開いて編集します。
   "domain": "misskey.io",
   "token": "",
   "upload_path": "VRChat/{YYYY}-{MM}-{DD}",
-  "srcDir": "C:\\Users\\ユーザー名\\Pictures\\VRChat"
+  "src_dir": "C:\\Users\\ユーザー名\\Pictures\\VRChat",
+  "use_avif_convert": false,
+  "time_to_previous_day": 5
 }
 ```
 
 - domain: アップロード先がmisskey.io以外の場合は変更してください。
+- token: アクセストークンが保存されます（扱いには十分注意してください）
 - upload_path: アップロード先のフォルダを指定できます。
-- srcDir: VRChatの写真の保存先を指定してください。（空の場合は自動で設定されます）
+- src_dir: VRChatの写真の保存先を指定してください。（空の場合は自動で設定されます）
+- use_avif_convert: avifに変換してからアップロードするオプション（有効の場合容量の節約が期待できます）
+- time_to_previous_day: 日付を過ぎてから何時間まで前日とみなすか[0-24]（1だと、25時まで当日のフォルダに入れるようになります）
 
 ## 起動
 
@@ -56,58 +61,6 @@ https://github.com/kakunpc/vrc-screenshot-to-misskey/issues/new
 こちらより報告をお願いします。書き方に特に指定はないので日本語で大丈夫です。
 
 
-# ライセンス表記
+# 権利表記
 
-### Json.Net
-
-https://www.newtonsoft.com/json
-
-The MIT License (MIT)
-
-Copyright (c) 2007 James Newton-King
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
---------------------------------------------------------------------
-
-### MisskeyDotNet
-
-https://github.com/EbiseLutica/Misskey.NET
-
-The MIT License (MIT)
-
-Copyright (c) 2020 Xeltica
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+権利表記は [こちら](COPYING.md)

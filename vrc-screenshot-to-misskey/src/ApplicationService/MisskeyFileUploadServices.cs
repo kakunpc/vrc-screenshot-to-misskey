@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 using MisskeyDotNet;
 using vrc_screenshot_to_misskey.Domain;
 
@@ -9,14 +10,16 @@ public sealed class MisskeyFileUploadServices
 {
     private readonly ILastUploadDataRepository _lastUploadDataRepository;
     private readonly IApplicationConfigRepository _applicationConfigRepository;
+    readonly Regex _regex = new Regex(@".*(\d\d\d\d)-(\d\d)-(\d\d)_(\d\d)-(\d\d)-(\d\d)");
 
-    public MisskeyFileUploadServices(ILastUploadDataRepository lastUploadDataRepository, IApplicationConfigRepository applicationConfigRepository)
+    public MisskeyFileUploadServices(ILastUploadDataRepository lastUploadDataRepository,
+        IApplicationConfigRepository applicationConfigRepository)
     {
         _lastUploadDataRepository = lastUploadDataRepository;
         _applicationConfigRepository = applicationConfigRepository;
     }
 
-    public async Task UploadScreenShot(Misskey misskey, string filePath)
+    public async Task UploadScreenShot(Misskey misskey, string filePath, string fileName)
     {
         try
         {
@@ -25,9 +28,20 @@ public sealed class MisskeyFileUploadServices
             // ファイルの状態を取得
             var fi = new FileInfo(filePath);
 
-            // アップロード先ディレクトリの確認
+           // 生成された時刻を採用する
             var now = fi.CreationTime;
 
+            // ファイル名に日付があったらそれを採用する　例）VRChat_2023-02-15_02-28-41.435_7680x4320
+            var matches = _regex.Match(fileName);
+            if (matches.Success)
+            {
+                now = DateTime.Parse(
+                    $"{matches.Groups[1]}/{matches.Groups[2]}/{matches.Groups[3]} {matches.Groups[4]}:{matches.Groups[5]}:{matches.Groups[6]}");
+            }
+            // 
+            now = now.AddHours(-applicationConfig.TimeToPreviousDay);
+
+            // アップロード先ディレクトリの確認
             var uploadPath = applicationConfig.UploadPath
                 // \を/に変える
                 .Replace("\\", "/")
@@ -57,7 +71,10 @@ public sealed class MisskeyFileUploadServices
                 if (find == null)
                 {
                     // 存在しないなら作成
-                    var res = await misskey.ApiAsync<DriveFolder>("drive/folders/create", string.IsNullOrEmpty(pathRoot) ? new { name = path } : new { name = path, parentId = pathRoot });
+                    var res = await misskey.ApiAsync<DriveFolder>("drive/folders/create",
+                        string.IsNullOrEmpty(pathRoot)
+                            ? new { name = path }
+                            : new { name = path, parentId = pathRoot });
                     // IDを登録
                     pathRoot = res.Id;
                 }
@@ -70,13 +87,11 @@ public sealed class MisskeyFileUploadServices
             // folderId
 
             var url = "https://" + applicationConfig.Domain + "/api/drive/files/create";
-
-            var filename = Path.GetFileName(filePath);
             var ext = Path.GetExtension(filePath);
 
             var body = new MultipartFormDataContent();
             body.Add(new StringContent(misskey.Token!), "i");
-            body.Add(new StringContent(filename), "name");
+            body.Add(new StringContent(fileName + ext), "name");
             if (!string.IsNullOrEmpty(pathRoot)) body.Add(new StringContent(pathRoot), "folderId");
 
             await using FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
@@ -85,13 +100,25 @@ public sealed class MisskeyFileUploadServices
                 new ContentDispositionHeaderValue("form-data")
                 {
                     Name = "file",
-                    FileName = filename
+                    FileName = fileName + ext
                 };
-            switch (ext)
+            switch (ext.ToLower())
             {
                 case ".png":
                     streamContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
                     break;
+
+                case ".heic":
+                    // image/heic の方がいい？  https://mimetype.io/image/heic
+                    streamContent.Headers.ContentType = new MediaTypeHeaderValue("image/heif-sequence");
+                    break;
+
+                case ".avif":
+                    streamContent.Headers.ContentType = new MediaTypeHeaderValue("image/avif");
+                    break;
+
+                case ".jpg":
+                case ".jpeg":
                 default:
                     streamContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
                     break;
@@ -103,7 +130,6 @@ public sealed class MisskeyFileUploadServices
             var response = await httpClient.PostAsync(url, body);
             var m = response.EnsureSuccessStatusCode();
             Debug.WriteLine(m.ToString());
-            // 更新完了（ログに残す）
             await _lastUploadDataRepository.StoreAsync(new LastUploadData(now, filePath));
         }
         catch (Exception e)

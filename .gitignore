@@ -394,3 +394,5 @@ FodyWeavers.xsd
 *.sln.iml
 
 
+output/
+vrc-screenshot-to-misskey.zip
