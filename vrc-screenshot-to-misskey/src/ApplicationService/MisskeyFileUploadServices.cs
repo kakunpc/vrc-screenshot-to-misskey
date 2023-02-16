@@ -19,17 +19,14 @@ public sealed class MisskeyFileUploadServices
         _applicationConfigRepository = applicationConfigRepository;
     }
 
-    public async Task UploadScreenShot(Misskey misskey, string filePath, string fileName)
+    public async Task UploadScreenShot(Misskey misskey, string filePath, string fileName, DateTime originalDateTime)
     {
         try
         {
             var applicationConfig = await _applicationConfigRepository.FindAsync();
 
-            // ファイルの状態を取得
-            var fi = new FileInfo(filePath);
-
            // 生成された時刻を採用する
-            var now = fi.CreationTime;
+            var now = originalDateTime;
 
             // ファイル名に日付があったらそれを採用する　例）VRChat_2023-02-15_02-28-41.435_7680x4320
             var matches = _regex.Match(fileName);
@@ -130,7 +127,7 @@ public sealed class MisskeyFileUploadServices
             var response = await httpClient.PostAsync(url, body);
             var m = response.EnsureSuccessStatusCode();
             Debug.WriteLine(m.ToString());
-            await _lastUploadDataRepository.StoreAsync(new LastUploadData(fi.CreationTime, filePath));
+            await _lastUploadDataRepository.StoreAsync(new LastUploadData(originalDateTime, filePath));
         }
         catch (Exception e)
         {

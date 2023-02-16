@@ -53,7 +53,8 @@ public sealed class MisskeyAutoUploadService
                 {
                     var outPath = await _avifImageConvertService.Run(fileInfo.FullName);
                     await _fileUploadServices.UploadScreenShot(misskey, outPath,
-                        Path.GetFileNameWithoutExtension(fileInfo.Name));
+                        Path.GetFileNameWithoutExtension(fileInfo.Name),
+                        fileInfo.CreationTime);
                     // アップロードしてから1秒はまつ
                     await Task.Delay(TimeSpan.FromMilliseconds(1000));
                     // 終了を宣言されてたら処理を終わらせる
