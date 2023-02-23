@@ -52,25 +52,28 @@ public sealed class MisskeyAutoUploadService
                     .OrderBy(fi => fi.CreationTime)
                     .ToList();
 
-                _logger.Info($"FindFiles:{files.Count}");
+                if (files.Count > 0) _logger.Info($"FindFiles:{files.Count}");
 
+                var max = files.Count;
                 int i = 0;
                 foreach (var fileInfo in files)
                 {
-                    _logger.Info($"[{i}] AvifImageConvertService:{fileInfo.FullName}");
+                    _logger.Info($"[{i}/{max}] AvifImageConvertService:{fileInfo.FullName}");
                     var outPath = await _avifImageConvertService.Run(fileInfo.FullName);
-                    
-                    _logger.Info($"[{i}] UploadScreenShot:{outPath}");
+
+                    _logger.Info($"[{i}/{max}] UploadScreenShot:{outPath}");
                     await _fileUploadServices.UploadScreenShot(misskey, outPath,
                         Path.GetFileNameWithoutExtension(fileInfo.Name),
                         fileInfo.CreationTime);
                     // アップロードしてから1秒はまつ
-                    _logger.Info($"[{i}] Wait");
+                    _logger.Info($"[{i}/{max}] Wait");
                     await Task.Delay(TimeSpan.FromMilliseconds(1000));
                     // 終了を宣言されてたら処理を終わらせる
                     if (_stopRequest) break;
                     ++i;
                 }
+                
+                if (files.Count > 0) _logger.Info($"Resume file monitoring.");
 
                 await Task.Delay(TimeSpan.FromMilliseconds(1000));
             }

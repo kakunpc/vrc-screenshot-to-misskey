@@ -21,7 +21,8 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
                 "VRChat/{YYYY}-{MM}-{DD}",
                 GetVRChatPictureDir(),
                 false,
-                5
+                5,
+                false
             )).Wait();
         }
     }
@@ -50,7 +51,8 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
             dto.UploadPath,
             dto.SrcDir,
             dto.UseAvifConvert ?? false,
-            dto.TimeToPreviousDay ?? 5);
+            dto.TimeToPreviousDay ?? 5,
+            dto.AllowDuplicates ?? false);
     }
 
     public async Task StoreAsync(ApplicationConfig applicationConfig)
@@ -63,9 +65,10 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
             SrcDir = applicationConfig.SrcDir,
             UseAvifConvert = applicationConfig.UseAvifConvert,
             TimeToPreviousDay = applicationConfig.TimeToPreviousDay,
+            AllowDuplicates = applicationConfig.AllowDuplicates,
         };
         var json = JsonConvert.SerializeObject(dto, Formatting.Indented,
-            new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore });
+            new JsonSerializerSettings() {NullValueHandling = NullValueHandling.Ignore});
         await File.WriteAllTextAsync(_dataPath, json, Encoding.UTF8);
     }
 }
@@ -78,7 +81,7 @@ class ApplicationConfigDto
     [JsonProperty("token")]
     public string Token;
 
-    [JsonProperty("upload_path")]
+    [JsonProperty("upload_path")] 
     public string UploadPath;
 
     [JsonProperty("src_dir")]
@@ -87,10 +90,13 @@ class ApplicationConfigDto
     [JsonProperty("use_avif_convert")]
     public bool? UseAvifConvert;
 
-    [JsonProperty("time_to_previous_day")]
+    [JsonProperty("time_to_previous_day")] 
     public int? TimeToPreviousDay;
 
+    [JsonProperty("allow_duplicates")] 
+    public bool? AllowDuplicates;
+
     // 以下使用しない nullにすることでエクスポートから消す
-    [JsonProperty("srcDir")]
+    [JsonProperty("srcDir")] 
     public string? OldSrcDir;
 }

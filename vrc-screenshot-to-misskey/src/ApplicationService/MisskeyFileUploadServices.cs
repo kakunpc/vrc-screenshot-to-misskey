@@ -83,11 +83,27 @@ public sealed class MisskeyFileUploadServices
                     pathRoot = find.Id;
                 }
             }
+            
+            var ext = Path.GetExtension(filePath);
 
-            // folderId
+            // 同名ファイルが存在するかチェック
+            if (!applicationConfig.AllowDuplicates)
+            {
+                var files = await misskey.ApiAsync<List<DriveFIle>>("drive/files/find", new
+                {
+                    name = fileName + ext,
+                    folderId = pathRoot
+                });
+                
+                if (files.Count > 0)
+                {
+                    _logger.Info($"{fileName + ext} Exists. Skip uploading.");
+                    await _lastUploadDataRepository.StoreAsync(new LastUploadData(originalDateTime, filePath));
+                    return;
+                }
+            }
 
             var url = "https://" + applicationConfig.Domain + "/api/drive/files/create";
-            var ext = Path.GetExtension(filePath);
 
             var body = new MultipartFormDataContent();
             body.Add(new StringContent(misskey.Token!), "i");
@@ -129,11 +145,13 @@ public sealed class MisskeyFileUploadServices
             using var httpClient = new HttpClient();
             var response = await httpClient.PostAsync(url, body);
             var m = response.EnsureSuccessStatusCode();
-            _logger.Info(m.ToString());
+            var content = await m.Content.ReadAsStringAsync();
+            _logger.Info("UPLOAD OK\n\t" + content);
             await _lastUploadDataRepository.StoreAsync(new LastUploadData(originalDateTime, filePath));
         }
         catch (Exception e)
         {
+            _logger.Error("Upload Error.");
             _logger.Error(e);
         }
     }
