@@ -9,13 +9,15 @@ public class ApplicationConfig
     public bool UseAvifConvert { get; }
     public int TimeToPreviousDay { get; }
     public bool AllowDuplicates { get; }
+    public bool UseXSOverlay { get; }
 
     public ApplicationConfig(string domain,
         string token,
         string uploadPath,
         string srcDir,
         bool useAvifConvert,
-        int timeToPreviousDay, bool allowDuplicates)
+        int timeToPreviousDay, bool allowDuplicates,
+        bool useXSOverlay)
     {
         Domain = domain;
         Token = token;
@@ -23,6 +25,7 @@ public class ApplicationConfig
         SrcDir = srcDir;
         UseAvifConvert = useAvifConvert;
         AllowDuplicates = allowDuplicates;
+        UseXSOverlay = useXSOverlay;
         TimeToPreviousDay = (int) MathF.Max(0, MathF.Min(timeToPreviousDay, 24));
     }
 
@@ -33,14 +36,16 @@ public class ApplicationConfig
         string? srcDir = null,
         bool? useAvifConvert = null,
         int? timeToPreviousDay = null,
-        bool? allowDuplicates = null) : this(
+        bool? allowDuplicates = null,
+        bool? useXSOverlay = null) : this(
         domain: domain ?? src.Domain,
         token: token ?? src.Token,
         uploadPath: uploadPath ?? src.UploadPath,
         srcDir: srcDir ?? src.SrcDir,
         useAvifConvert: useAvifConvert ?? src.UseAvifConvert,
         timeToPreviousDay: timeToPreviousDay ?? src.TimeToPreviousDay,
-        allowDuplicates: allowDuplicates ?? src.AllowDuplicates)
+        allowDuplicates: allowDuplicates ?? src.AllowDuplicates,
+        useXSOverlay: useXSOverlay ?? src.UseXSOverlay)
     {
     }
 }

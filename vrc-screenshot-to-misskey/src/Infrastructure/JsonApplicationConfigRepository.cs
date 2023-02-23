@@ -22,6 +22,7 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
                 GetVRChatPictureDir(),
                 false,
                 5,
+                false,
                 false
             )).Wait();
         }
@@ -52,7 +53,8 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
             dto.SrcDir,
             dto.UseAvifConvert ?? false,
             dto.TimeToPreviousDay ?? 5,
-            dto.AllowDuplicates ?? false);
+            dto.AllowDuplicates ?? false,
+            dto.UseXSOverlay ?? false);
     }
 
     public async Task StoreAsync(ApplicationConfig applicationConfig)
@@ -66,6 +68,7 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
             UseAvifConvert = applicationConfig.UseAvifConvert,
             TimeToPreviousDay = applicationConfig.TimeToPreviousDay,
             AllowDuplicates = applicationConfig.AllowDuplicates,
+            UseXSOverlay = applicationConfig.UseXSOverlay,
         };
         var json = JsonConvert.SerializeObject(dto, Formatting.Indented,
             new JsonSerializerSettings() {NullValueHandling = NullValueHandling.Ignore});
@@ -95,6 +98,9 @@ class ApplicationConfigDto
 
     [JsonProperty("allow_duplicates")] 
     public bool? AllowDuplicates;
+    
+    [JsonProperty("use_xsoverlay")]
+    public bool? UseXSOverlay;
 
     // 以下使用しない nullにすることでエクスポートから消す
     [JsonProperty("srcDir")] 

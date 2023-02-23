@@ -34,6 +34,7 @@ internal static class Program
         services.AddScoped<IApplicationConfigRepository, JsonApplicationConfigRepository>();
         services.AddScoped<ILastUploadDataRepository, JsonLastUploadDataRepository>();
         services.AddScoped<ILogger, FileLogger>();
+        services.AddScoped<IVrNotification, XSOverlayNotification>();
 
         services.AddSingleton<MisskeyFileUploadServices>();
         services.AddSingleton<MisskeyAutoUploadService>();

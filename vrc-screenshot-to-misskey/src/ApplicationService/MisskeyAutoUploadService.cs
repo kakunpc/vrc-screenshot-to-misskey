@@ -11,19 +11,21 @@ public sealed class MisskeyAutoUploadService
     private readonly ILastUploadDataRepository _lastUploadDataRepository;
     private readonly AvifImageConvertService _avifImageConvertService;
     private readonly ILogger _logger;
+    private readonly IVrNotification _vrNotification;
 
     private bool _stopRequest = false;
     private bool _isExitOk = true;
 
     public MisskeyAutoUploadService(IApplicationConfigRepository applicationConfigRepository,
         MisskeyFileUploadServices fileUploadServices, ILastUploadDataRepository lastUploadDataRepository,
-        AvifImageConvertService avifImageConvertService, ILogger logger)
+        AvifImageConvertService avifImageConvertService, ILogger logger, IVrNotification vrNotification)
     {
         _applicationConfigRepository = applicationConfigRepository;
         _fileUploadServices = fileUploadServices;
         _lastUploadDataRepository = lastUploadDataRepository;
         _avifImageConvertService = avifImageConvertService;
         _logger = logger;
+        _vrNotification = vrNotification;
     }
 
     public async Task RunAsync()
@@ -62,9 +64,47 @@ public sealed class MisskeyAutoUploadService
                     var outPath = await _avifImageConvertService.Run(fileInfo.FullName);
 
                     _logger.Info($"[{i}/{max}] UploadScreenShot:{outPath}");
-                    await _fileUploadServices.UploadScreenShot(misskey, outPath,
-                        Path.GetFileNameWithoutExtension(fileInfo.Name),
-                        fileInfo.CreationTime);
+                    var uploadResult =
+                        await _fileUploadServices.UploadScreenShot(misskey, outPath,
+                            Path.GetFileNameWithoutExtension(fileInfo.Name),
+                            fileInfo.CreationTime);
+
+                    if (uploadResult == MisskeyFileUploadServices.MisskeyFileUploadResult.Success)
+                    {
+                        if (applicationConfig.UseXSOverlay)
+                        {
+                            _vrNotification.SendNotification($"{fileInfo.FullName} Upload Success.");
+                        }
+                    }
+                    else if (uploadResult == MisskeyFileUploadServices.MisskeyFileUploadResult.Skip)
+                    {
+                        if (applicationConfig.UseXSOverlay)
+                        {
+                            _vrNotification.SendNotification($"{fileInfo.FullName} Upload Skipped.");
+                        }
+                    }
+                    else if (uploadResult == MisskeyFileUploadServices.MisskeyFileUploadResult.Failure)
+                    {
+                        if (applicationConfig.UseXSOverlay)
+                        {
+                            _vrNotification.SendNotification($"{fileInfo.FullName} Upload Failure.");
+                        }
+
+                        // 失敗したら10秒待機してからファイル探索を再開する
+                        await Task.Delay(TimeSpan.FromSeconds(10));
+                        break;
+                    }
+                    else
+                    {
+                        if (applicationConfig.UseXSOverlay)
+                        {
+                            _vrNotification.SendNotification($"不明なアップロード状態が発生しました為終了します。\n{uploadResult.ToString()}");
+                        }
+
+                        _logger.Error($"不明なアップロード状態:{uploadResult.ToString()}");
+                        _ = Stop(Application.Exit);
+                    }
+
                     // アップロードしてから1秒はまつ
                     _logger.Info($"[{i}/{max}] Wait");
                     await Task.Delay(TimeSpan.FromMilliseconds(1000));
@@ -72,7 +112,7 @@ public sealed class MisskeyAutoUploadService
                     if (_stopRequest) break;
                     ++i;
                 }
-                
+
                 if (files.Count > 0) _logger.Info($"Resume file monitoring.");
 
                 await Task.Delay(TimeSpan.FromMilliseconds(1000));
@@ -80,6 +120,11 @@ public sealed class MisskeyAutoUploadService
         }
         catch (Exception e)
         {
+            if (applicationConfig.UseXSOverlay)
+            {
+                _vrNotification.SendNotification($"エラーが発生したため終了します");
+            }
+
             _logger.Error(e);
             // 強制終了
             Application.Exit();

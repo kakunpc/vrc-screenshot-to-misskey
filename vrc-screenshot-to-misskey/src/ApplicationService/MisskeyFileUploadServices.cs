@@ -8,6 +8,13 @@ namespace vrc_screenshot_to_misskey.ApplicationService;
 
 public sealed class MisskeyFileUploadServices
 {
+    public enum MisskeyFileUploadResult
+    {
+        Success,
+        Skip,
+        Failure
+    }
+    
     private readonly ILastUploadDataRepository _lastUploadDataRepository;
     private readonly IApplicationConfigRepository _applicationConfigRepository;
     readonly Regex _regex = new Regex(@".*(\d\d\d\d)-(\d\d)-(\d\d)_(\d\d)-(\d\d)-(\d\d)");
@@ -21,7 +28,8 @@ public sealed class MisskeyFileUploadServices
         _logger = logger;
     }
 
-    public async Task UploadScreenShot(Misskey misskey, string filePath, string fileName, DateTime originalDateTime)
+    public async Task<MisskeyFileUploadResult> UploadScreenShot(Misskey misskey, string filePath, string fileName,
+        DateTime originalDateTime)
     {
         try
         {
@@ -83,7 +91,7 @@ public sealed class MisskeyFileUploadServices
                     pathRoot = find.Id;
                 }
             }
-            
+
             var ext = Path.GetExtension(filePath);
 
             // 同名ファイルが存在するかチェック
@@ -94,12 +102,12 @@ public sealed class MisskeyFileUploadServices
                     name = fileName + ext,
                     folderId = pathRoot
                 });
-                
+
                 if (files.Count > 0)
                 {
                     _logger.Info($"{fileName + ext} Exists. Skip uploading.");
                     await _lastUploadDataRepository.StoreAsync(new LastUploadData(originalDateTime, filePath));
-                    return;
+                    return MisskeyFileUploadResult.Skip;
                 }
             }
 
@@ -148,11 +156,13 @@ public sealed class MisskeyFileUploadServices
             var content = await m.Content.ReadAsStringAsync();
             _logger.Info("UPLOAD OK\n\t" + content);
             await _lastUploadDataRepository.StoreAsync(new LastUploadData(originalDateTime, filePath));
+            return MisskeyFileUploadResult.Success;
         }
         catch (Exception e)
         {
             _logger.Error("Upload Error.");
             _logger.Error(e);
+            return MisskeyFileUploadResult.Failure;
         }
     }
 }
