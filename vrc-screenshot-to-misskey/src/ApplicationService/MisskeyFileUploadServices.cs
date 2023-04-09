@@ -111,7 +111,9 @@ public sealed class MisskeyFileUploadServices
                 }
             }
 
-            var url = "https://" + applicationConfig.Domain + "/api/drive/files/create";
+            var protocol = applicationConfig.IsNotSecureServer ? "http://" : "https://";
+
+            var url = protocol + applicationConfig.Domain + "/api/drive/files/create";
 
             var body = new MultipartFormDataContent();
             body.Add(new StringContent(misskey.Token!), "i");

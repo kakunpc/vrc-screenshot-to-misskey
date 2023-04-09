@@ -17,6 +17,7 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
         {
             StoreAsync(new ApplicationConfig(
                 "misskey.io",
+                false,
                 "",
                 "VRChat/{YYYY}-{MM}-{DD}",
                 GetVRChatPictureDir(),
@@ -48,6 +49,7 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
         }
 
         return new ApplicationConfig(dto.Domain,
+            dto.IsNotSecureServer,
             dto.Token,
             dto.UploadPath,
             dto.SrcDir,
@@ -62,6 +64,7 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
         var dto = new ApplicationConfigDto
         {
             Domain = applicationConfig.Domain,
+            IsNotSecureServer = applicationConfig.IsNotSecureServer,
             Token = applicationConfig.Token,
             UploadPath = applicationConfig.UploadPath,
             SrcDir = applicationConfig.SrcDir,
@@ -78,31 +81,24 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
 
 class ApplicationConfigDto
 {
-    [JsonProperty("domain")]
-    public string Domain;
+    [JsonProperty("domain")] public string Domain;
 
-    [JsonProperty("token")]
-    public string Token;
+    [JsonProperty("is_not_secure_server")] public bool IsNotSecureServer;
 
-    [JsonProperty("upload_path")] 
-    public string UploadPath;
+    [JsonProperty("token")] public string Token;
 
-    [JsonProperty("src_dir")]
-    public string SrcDir;
+    [JsonProperty("upload_path")] public string UploadPath;
 
-    [JsonProperty("use_avif_convert")]
-    public bool? UseAvifConvert;
+    [JsonProperty("src_dir")] public string SrcDir;
 
-    [JsonProperty("time_to_previous_day")] 
-    public int? TimeToPreviousDay;
+    [JsonProperty("use_avif_convert")] public bool? UseAvifConvert;
 
-    [JsonProperty("allow_duplicates")] 
-    public bool? AllowDuplicates;
-    
-    [JsonProperty("use_xsoverlay")]
-    public bool? UseXSOverlay;
+    [JsonProperty("time_to_previous_day")] public int? TimeToPreviousDay;
+
+    [JsonProperty("allow_duplicates")] public bool? AllowDuplicates;
+
+    [JsonProperty("use_xsoverlay")] public bool? UseXSOverlay;
 
     // 以下使用しない nullにすることでエクスポートから消す
-    [JsonProperty("srcDir")] 
-    public string? OldSrcDir;
+    [JsonProperty("srcDir")] public string? OldSrcDir;
 }

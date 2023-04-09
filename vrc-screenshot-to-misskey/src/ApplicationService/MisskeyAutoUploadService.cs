@@ -168,7 +168,8 @@ public sealed class MisskeyAutoUploadService
         if (!string.IsNullOrEmpty(applicationConfig.Token))
         {
             // tokenの有効性を確認
-            var mi = new Misskey(applicationConfig.Domain, applicationConfig.Token);
+            var mi = new Misskey(applicationConfig.Domain, applicationConfig.IsNotSecureServer,
+                applicationConfig.Token);
 
             try
             {
@@ -195,7 +196,7 @@ public sealed class MisskeyAutoUploadService
 
         if (ok == false)
         {
-            var token = await MiOauthService.RunAsync(applicationConfig.Domain);
+            var token = await MiOauthService.RunAsync(applicationConfig.Domain, applicationConfig.IsNotSecureServer);
             // tokenを保存
             await _applicationConfigRepository.StoreAsync(new ApplicationConfig(applicationConfig, token: token));
 
