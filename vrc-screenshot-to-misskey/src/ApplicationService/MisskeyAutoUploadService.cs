@@ -43,6 +43,7 @@ public sealed class MisskeyAutoUploadService
 
             // フォルダ監視を開始
             _isExitOk = false;
+            int backoff = 1;
             while (!_stopRequest)
             {
                 var lastUploadDate = await _lastUploadDataRepository.FindAsync();
@@ -87,11 +88,14 @@ public sealed class MisskeyAutoUploadService
                     {
                         if (applicationConfig.UseXSOverlay)
                         {
-                            _vrNotification.SendNotification($"{fileInfo.FullName} Upload Failure.");
+                            _vrNotification.SendNotification($"{fileInfo.FullName} Upload Failure.\nRetry after {backoff} seconds");
                         }
 
                         // 失敗したら10秒待機してからファイル探索を再開する
-                        await Task.Delay(TimeSpan.FromSeconds(10));
+                        _logger.Info($"Retry after {backoff} seconds");
+                        await Task.Delay(TimeSpan.FromSeconds(backoff));
+                        // 失敗するごとに 1  2  4  8  16 秒とだんだん増えていく
+                        backoff = backoff * 2;
                         break;
                     }
                     else
@@ -104,10 +108,17 @@ public sealed class MisskeyAutoUploadService
                         _logger.Error($"不明なアップロード状態:{uploadResult.ToString()}");
                         _ = Stop(Application.Exit);
                     }
+                    
+                    // 処理が進んだのでBackoffを戻す
+                    backoff = 1;
 
                     // アップロードしてから1秒はまつ
                     _logger.Info($"[{i}/{max}] Wait");
-                    await Task.Delay(TimeSpan.FromMilliseconds(1000));
+                    if (applicationConfig.UploadDelay > 0)
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(applicationConfig.UploadDelay));
+                    }
+
                     // 終了を宣言されてたら処理を終わらせる
                     if (_stopRequest) break;
                     ++i;

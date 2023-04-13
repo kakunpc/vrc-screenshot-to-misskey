@@ -11,6 +11,7 @@ public class ApplicationConfig
     public int TimeToPreviousDay { get; }
     public bool AllowDuplicates { get; }
     public bool UseXSOverlay { get; }
+    public int UploadDelay { get; }
 
     public ApplicationConfig(string domain,
         bool isNotSecureServer,
@@ -19,7 +20,7 @@ public class ApplicationConfig
         string srcDir,
         bool useAvifConvert,
         int timeToPreviousDay, bool allowDuplicates,
-        bool useXSOverlay)
+        bool useXSOverlay, int uploadDelay)
     {
         Domain = domain;
         IsNotSecureServer = isNotSecureServer;
@@ -29,12 +30,12 @@ public class ApplicationConfig
         UseAvifConvert = useAvifConvert;
         AllowDuplicates = allowDuplicates;
         UseXSOverlay = useXSOverlay;
+        UploadDelay = uploadDelay;
         TimeToPreviousDay = (int) MathF.Max(0, MathF.Min(timeToPreviousDay, 24));
     }
 
     public ApplicationConfig(
-        ApplicationConfig src,
-        string? domain = null,
+        ApplicationConfig src, string? domain = null,
         bool? isNotSecureServer = null,
         string? token = null,
         string? uploadPath = null,
@@ -42,7 +43,8 @@ public class ApplicationConfig
         bool? useAvifConvert = null,
         int? timeToPreviousDay = null,
         bool? allowDuplicates = null,
-        bool? useXSOverlay = null) : this(
+        bool? useXSOverlay = null,
+        int? uploadDelay = null) : this(
         domain: domain ?? src.Domain,
         isNotSecureServer: isNotSecureServer ?? src.IsNotSecureServer,
         token: token ?? src.Token,
@@ -51,7 +53,8 @@ public class ApplicationConfig
         useAvifConvert: useAvifConvert ?? src.UseAvifConvert,
         timeToPreviousDay: timeToPreviousDay ?? src.TimeToPreviousDay,
         allowDuplicates: allowDuplicates ?? src.AllowDuplicates,
-        useXSOverlay: useXSOverlay ?? src.UseXSOverlay)
+        useXSOverlay: useXSOverlay ?? src.UseXSOverlay,
+        uploadDelay: uploadDelay ?? src.UploadDelay)
     {
     }
 }

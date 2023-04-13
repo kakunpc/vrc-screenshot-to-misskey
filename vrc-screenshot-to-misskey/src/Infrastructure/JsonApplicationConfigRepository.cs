@@ -24,7 +24,8 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
                 false,
                 5,
                 false,
-                false
+                false,
+                1000
             )).Wait();
         }
     }
@@ -56,7 +57,8 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
             dto.UseAvifConvert ?? false,
             dto.TimeToPreviousDay ?? 5,
             dto.AllowDuplicates ?? false,
-            dto.UseXSOverlay ?? false);
+            dto.UseXSOverlay ?? false,
+            dto.UploadDelay ?? 1000);
     }
 
     public async Task StoreAsync(ApplicationConfig applicationConfig)
@@ -72,6 +74,7 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
             TimeToPreviousDay = applicationConfig.TimeToPreviousDay,
             AllowDuplicates = applicationConfig.AllowDuplicates,
             UseXSOverlay = applicationConfig.UseXSOverlay,
+            UploadDelay = applicationConfig.UploadDelay
         };
         var json = JsonConvert.SerializeObject(dto, Formatting.Indented,
             new JsonSerializerSettings() {NullValueHandling = NullValueHandling.Ignore});
@@ -98,6 +101,8 @@ class ApplicationConfigDto
     [JsonProperty("allow_duplicates")] public bool? AllowDuplicates;
 
     [JsonProperty("use_xsoverlay")] public bool? UseXSOverlay;
+
+    [JsonProperty("upload_delay_ms")] public int? UploadDelay;
 
     // 以下使用しない nullにすることでエクスポートから消す
     [JsonProperty("srcDir")] public string? OldSrcDir;
