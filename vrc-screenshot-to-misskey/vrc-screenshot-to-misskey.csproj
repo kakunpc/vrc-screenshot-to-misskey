@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="D:\workspace\vrc-screenshot-to-misskey\Misskey.NET\MisskeyDotNet\MisskeyDotNet.csproj" />
+    <ProjectReference Include="..\Misskey.NET\MisskeyDotNet\MisskeyDotNet.csproj" />
   </ItemGroup>
 
 </Project>

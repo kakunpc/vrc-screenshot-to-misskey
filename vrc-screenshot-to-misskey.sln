@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.31613.86
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "vrc-screenshot-to-misskey", "vrc-screenshot-to-misskey\vrc-screenshot-to-misskey.csproj", "{8403BD09-5645-45B0-8499-A63C2A8CE034}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MisskeyDotNet", "D:\workspace\vrc-screenshot-to-misskey\Misskey.NET\MisskeyDotNet\MisskeyDotNet.csproj", "{583F4509-1A29-4F7F-984C-77BEDE2AC24B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MisskeyDotNet", "Misskey.NET\MisskeyDotNet\MisskeyDotNet.csproj", "{583F4509-1A29-4F7F-984C-77BEDE2AC24B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
