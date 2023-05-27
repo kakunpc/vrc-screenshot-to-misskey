@@ -10,22 +10,27 @@ public sealed class MisskeyAutoUploadService
     private readonly MisskeyFileUploadServices _fileUploadServices;
     private readonly ILastUploadDataRepository _lastUploadDataRepository;
     private readonly AvifImageConvertService _avifImageConvertService;
+    private readonly ILogger _logger;
+    private readonly IVrNotification _vrNotification;
 
     private bool _stopRequest = false;
     private bool _isExitOk = true;
 
     public MisskeyAutoUploadService(IApplicationConfigRepository applicationConfigRepository,
         MisskeyFileUploadServices fileUploadServices, ILastUploadDataRepository lastUploadDataRepository,
-        AvifImageConvertService avifImageConvertService)
+        AvifImageConvertService avifImageConvertService, ILogger logger, IVrNotification vrNotification)
     {
         _applicationConfigRepository = applicationConfigRepository;
         _fileUploadServices = fileUploadServices;
         _lastUploadDataRepository = lastUploadDataRepository;
         _avifImageConvertService = avifImageConvertService;
+        _logger = logger;
+        _vrNotification = vrNotification;
     }
 
     public async Task RunAsync()
     {
+        _logger.Info("Start");
         // ファイルを読み込む
         var applicationConfig = await _applicationConfigRepository.FindAsync();
         // マイグレーションのために一度書き込み
@@ -38,6 +43,7 @@ public sealed class MisskeyAutoUploadService
 
             // フォルダ監視を開始
             _isExitOk = false;
+            int backoff = 1;
             while (!_stopRequest)
             {
                 var lastUploadDate = await _lastUploadDataRepository.FindAsync();
@@ -49,25 +55,88 @@ public sealed class MisskeyAutoUploadService
                     .OrderBy(fi => fi.CreationTime)
                     .ToList();
 
+                if (files.Count > 0) _logger.Info($"FindFiles:{files.Count}");
+
+                var max = files.Count;
+                int i = 0;
                 foreach (var fileInfo in files)
                 {
+                    _logger.Info($"[{i}/{max}] AvifImageConvertService:{fileInfo.FullName}");
                     var outPath = await _avifImageConvertService.Run(fileInfo.FullName);
-                    await _fileUploadServices.UploadScreenShot(misskey, outPath,
-                        Path.GetFileNameWithoutExtension(fileInfo.Name),
-                        fileInfo.CreationTime);
+
+                    _logger.Info($"[{i}/{max}] UploadScreenShot:{outPath}");
+                    var uploadResult =
+                        await _fileUploadServices.UploadScreenShot(misskey, outPath,
+                            Path.GetFileNameWithoutExtension(fileInfo.Name),
+                            fileInfo.CreationTime);
+
+                    if (uploadResult == MisskeyFileUploadServices.MisskeyFileUploadResult.Success)
+                    {
+                        if (applicationConfig.UseXSOverlay)
+                        {
+                            _vrNotification.SendNotification($"{fileInfo.FullName} Upload Success.");
+                        }
+                    }
+                    else if (uploadResult == MisskeyFileUploadServices.MisskeyFileUploadResult.Skip)
+                    {
+                        if (applicationConfig.UseXSOverlay)
+                        {
+                            _vrNotification.SendNotification($"{fileInfo.FullName} Upload Skipped.");
+                        }
+                    }
+                    else if (uploadResult == MisskeyFileUploadServices.MisskeyFileUploadResult.Failure)
+                    {
+                        if (applicationConfig.UseXSOverlay)
+                        {
+                            _vrNotification.SendNotification($"{fileInfo.FullName} Upload Failure.\nRetry after {backoff} seconds");
+                        }
+
+                        // 失敗したら10秒待機してからファイル探索を再開する
+                        _logger.Info($"Retry after {backoff} seconds");
+                        await Task.Delay(TimeSpan.FromSeconds(backoff));
+                        // 失敗するごとに 1  2  4  8  16 秒とだんだん増えていく
+                        backoff = backoff * 2;
+                        break;
+                    }
+                    else
+                    {
+                        if (applicationConfig.UseXSOverlay)
+                        {
+                            _vrNotification.SendNotification($"不明なアップロード状態が発生しました為終了します。\n{uploadResult.ToString()}");
+                        }
+
+                        _logger.Error($"不明なアップロード状態:{uploadResult.ToString()}");
+                        _ = Stop(Application.Exit);
+                    }
+                    
+                    // 処理が進んだのでBackoffを戻す
+                    backoff = 1;
+
                     // アップロードしてから1秒はまつ
-                    await Task.Delay(TimeSpan.FromMilliseconds(1000));
+                    _logger.Info($"[{i}/{max}] Wait");
+                    if (applicationConfig.UploadDelay > 0)
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(applicationConfig.UploadDelay));
+                    }
+
                     // 終了を宣言されてたら処理を終わらせる
                     if (_stopRequest) break;
+                    ++i;
                 }
+
+                if (files.Count > 0) _logger.Info($"Resume file monitoring.");
 
                 await Task.Delay(TimeSpan.FromMilliseconds(1000));
             }
         }
         catch (Exception e)
         {
-            Debug.WriteLine(e.Message);
-            // TODO: ログ
+            if (applicationConfig.UseXSOverlay)
+            {
+                _vrNotification.SendNotification($"エラーが発生したため終了します");
+            }
+
+            _logger.Error(e);
             // 強制終了
             Application.Exit();
         }
@@ -82,6 +151,7 @@ public sealed class MisskeyAutoUploadService
     public async Task Stop(Action exitAction)
     {
         if (_stopRequest) return;
+        _logger.Info("Call Stop");
 
         // 処理停止のリクエスト
         _stopRequest = true;
@@ -99,6 +169,7 @@ public sealed class MisskeyAutoUploadService
         _avifImageConvertService.Dispose();
 
         Debug.WriteLine("END");
+        _logger.Info("END");
         exitAction();
     }
 
@@ -108,7 +179,8 @@ public sealed class MisskeyAutoUploadService
         if (!string.IsNullOrEmpty(applicationConfig.Token))
         {
             // tokenの有効性を確認
-            var mi = new Misskey(applicationConfig.Domain, applicationConfig.Token);
+            var mi = new Misskey(applicationConfig.Domain, applicationConfig.IsNotSecureServer,
+                applicationConfig.Token);
 
             try
             {
@@ -135,7 +207,7 @@ public sealed class MisskeyAutoUploadService
 
         if (ok == false)
         {
-            var token = await MiOauthService.RunAsync(applicationConfig.Domain);
+            var token = await MiOauthService.RunAsync(applicationConfig.Domain, applicationConfig.IsNotSecureServer);
             // tokenを保存
             await _applicationConfigRepository.StoreAsync(new ApplicationConfig(applicationConfig, token: token));
 

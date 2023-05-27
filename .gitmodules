@@ -1,0 +1,3 @@
+[submodule "Misskey.NET"]
+	path = Misskey.NET
+	url = git@github.com:kakunpc/Misskey.NET.git

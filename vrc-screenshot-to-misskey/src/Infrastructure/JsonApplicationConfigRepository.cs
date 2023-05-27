@@ -17,11 +17,15 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
         {
             StoreAsync(new ApplicationConfig(
                 "misskey.io",
+                false,
                 "",
                 "VRChat/{YYYY}-{MM}-{DD}",
                 GetVRChatPictureDir(),
                 false,
-                5
+                5,
+                false,
+                false,
+                1000
             )).Wait();
         }
     }
@@ -46,11 +50,15 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
         }
 
         return new ApplicationConfig(dto.Domain,
+            dto.IsNotSecureServer,
             dto.Token,
             dto.UploadPath,
             dto.SrcDir,
             dto.UseAvifConvert ?? false,
-            dto.TimeToPreviousDay ?? 5);
+            dto.TimeToPreviousDay ?? 5,
+            dto.AllowDuplicates ?? false,
+            dto.UseXSOverlay ?? false,
+            dto.UploadDelay ?? 1000);
     }
 
     public async Task StoreAsync(ApplicationConfig applicationConfig)
@@ -58,39 +66,44 @@ public class JsonApplicationConfigRepository : IApplicationConfigRepository
         var dto = new ApplicationConfigDto
         {
             Domain = applicationConfig.Domain,
+            IsNotSecureServer = applicationConfig.IsNotSecureServer,
             Token = applicationConfig.Token,
             UploadPath = applicationConfig.UploadPath,
             SrcDir = applicationConfig.SrcDir,
             UseAvifConvert = applicationConfig.UseAvifConvert,
             TimeToPreviousDay = applicationConfig.TimeToPreviousDay,
+            AllowDuplicates = applicationConfig.AllowDuplicates,
+            UseXSOverlay = applicationConfig.UseXSOverlay,
+            UploadDelay = applicationConfig.UploadDelay
         };
         var json = JsonConvert.SerializeObject(dto, Formatting.Indented,
-            new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore });
+            new JsonSerializerSettings() {NullValueHandling = NullValueHandling.Ignore});
         await File.WriteAllTextAsync(_dataPath, json, Encoding.UTF8);
     }
 }
 
 class ApplicationConfigDto
 {
-    [JsonProperty("domain")]
-    public string Domain;
+    [JsonProperty("domain")] public string Domain;
 
-    [JsonProperty("token")]
-    public string Token;
+    [JsonProperty("is_not_secure_server")] public bool IsNotSecureServer;
 
-    [JsonProperty("upload_path")]
-    public string UploadPath;
+    [JsonProperty("token")] public string Token;
 
-    [JsonProperty("src_dir")]
-    public string SrcDir;
+    [JsonProperty("upload_path")] public string UploadPath;
 
-    [JsonProperty("use_avif_convert")]
-    public bool? UseAvifConvert;
+    [JsonProperty("src_dir")] public string SrcDir;
 
-    [JsonProperty("time_to_previous_day")]
-    public int? TimeToPreviousDay;
+    [JsonProperty("use_avif_convert")] public bool? UseAvifConvert;
+
+    [JsonProperty("time_to_previous_day")] public int? TimeToPreviousDay;
+
+    [JsonProperty("allow_duplicates")] public bool? AllowDuplicates;
+
+    [JsonProperty("use_xsoverlay")] public bool? UseXSOverlay;
+
+    [JsonProperty("upload_delay_ms")] public int? UploadDelay;
 
     // 以下使用しない nullにすることでエクスポートから消す
-    [JsonProperty("srcDir")]
-    public string? OldSrcDir;
+    [JsonProperty("srcDir")] public string? OldSrcDir;
 }
